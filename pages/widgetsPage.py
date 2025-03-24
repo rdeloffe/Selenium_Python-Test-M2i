@@ -34,9 +34,12 @@ class WidgetPage :
         #Liste des mois que je stocker dans une liste pour les parcourir
         self.list_month_recup = (By.XPATH,"//div[contains(@class, 'react-datepicker__month-option')]")
 
-        self.click_year = (By.CSS_SELECTOR,'.react-datepicker__year-read-view--selected-year') 
-        self.goto2035 = (By.CSS_SELECTOR,'.react-datepicker__navigation react-datepicker__navigation--years react-datepicker__navigation--years-upcoming')
-        self.click_2035 = (By.CSS_SELECTOR,'.react-datepicker__year-option')
+        self.click_year = (By.CSS_SELECTOR,'.react-datepicker__year-read-view--selected-year')
+        self.list_year = (By.XPATH,"//div[contains(@class, 'react-datepicker__year-option')]")
+        self.defiles_years = (By.XPATH,"(//div[contains(@class, 'react-datepicker__year-option')])[1]")
+        self.click_2035 = (By.XPATH,"(//div[contains(@class, 'react-datepicker__year-option')])[3]")
+        
+        self.year_select = (By.CSS_SELECTOR,"react-datepicker__year-read-view--selected-year")
 
     def click_date_picker(self):
         self.wait.until(EC.visibility_of_element_located(self.date_picker)).click()#
@@ -71,26 +74,66 @@ class WidgetPage :
         self.wait.until(EC.element_to_be_clickable(self.click_list_month)).click()
 
         # 3️⃣ Récupérer la liste des mois disponibles
-        months = self.wait.until(EC.presence_of_all_elements_located(self.list_month_recup))
+        list_months = self.wait.until(EC.presence_of_all_elements_located(self.list_month_recup))
 
         # 4️⃣ Parcourir la liste pour cliquer sur "November"
-        for month in months:
-            if month.text.strip() == "November":
-                month.click()
-                time.sleep(5)
+        for nbmonth in list_months:
+            if nbmonth.text.strip() == "November":
+                nbmonth.click()
+                time.sleep(2)
                 break  # Stopper la boucle une fois que Novembre est sélectionné
-
+        
         # 5️⃣ Vérifier quel mois a été sélectionné
         month_element = self.wait.until(EC.visibility_of_element_located(self.month_select))
         month_text = month_element.text
 
         day_element = self.wait.until(EC.element_to_be_clickable(self.nb_days))
         day_element.click()
+        time.sleep(1)
+        
+        # 6 Select year
+        self.wait.until(EC.element_to_be_clickable(self.click_year)).click()
 
-        print("Sélection de la date réussie.")
+        # Initialiser `year_text` pour éviter l'erreur UnboundLocalError
+        year_text = ""
 
-        print("✅ Mois sélectionné :", month_text)  # Affiche le mois sélectionné
+        try:
+            while True:  # Continue jusqu'à ce que 2035 soit visible et sélectionnée
+                list_years = self.wait.until(EC.presence_of_all_elements_located(self.list_year))
+                year_found = False  # Variable pour savoir si 2035 est trouvée
 
+                for nbyears in list_years:
+                    if nbyears.text.strip() == "2035":
+                        self.wait.until(EC.element_to_be_clickable(nbyears)).click()  # Clique sur 2035
+                        time.sleep(1)  # Laisser le temps à l'interface de prendre en compte le clic
+                        year_found = True  # Marquer que l'année a été trouvée
+                        break  # Sortir de la boucle FOR
+                
+                if year_found:
+                    break  # Si 2035 a été trouvée et cliquée, on arrête la boucle WHILE
+
+                # Si 2035 n'est pas encore trouvée, on clique sur le bouton pour défiler les années
+                self.wait.until(EC.element_to_be_clickable(self.defiles_years)).click()
+                time.sleep(1)  # Attendre pour que les années défilent
+
+            # Vérifier l'année sélectionnée après la boucle
+            year_element = self.wait.until(EC.visibility_of_element_located(self.year_select))
+            year_text = year_element.text.strip()
+
+            print("✅ Sélection de la date réussie.")
+            print("✅ Mois sélectionné :", month_text)
+            print("✅ Année sélectionnée :", year_text)
+            
+            day_element = self.wait.until(EC.element_to_be_clickable(self.nb_days))
+            day_element.click()
+
+        except Exception as e:
+            print(f"❌ Erreur lors de la sélection de l'année : {e}")
+            print(f"ℹ️ Voici les éléments qu'on a : {month_text}, {year_text}, {list_years}")
+            
+        day_element = self.wait.until(EC.element_to_be_clickable(self.nb_days))
+        day_element.click()
+        time.sleep(1)
 
 
 
