@@ -1,4 +1,6 @@
+from argparse import Action
 from math import e
+from operator import ne
 import select
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
@@ -7,6 +9,7 @@ from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.remote.webelement import WebElement
 #import WebElement 
 import time
+from selenium.webdriver.common.action_chains import ActionChains
 
 
 
@@ -38,8 +41,9 @@ class WidgetPage :
         self.list_year = (By.XPATH,"//div[contains(@class, 'react-datepicker__year-option')]")
         self.defiles_years = (By.XPATH,"(//div[contains(@class, 'react-datepicker__year-option')])[1]")
         self.click_2035 = (By.XPATH,"(//div[contains(@class, 'react-datepicker__year-option')])[3]")
-        
         self.year_select = (By.CSS_SELECTOR,"react-datepicker__year-read-view--selected-year")
+
+        self.select_hour = (By.CSS_SELECTOR,'.react-datepicker__time-list-item:nth-child(96)')
 
     def click_date_picker(self):
         self.wait.until(EC.visibility_of_element_located(self.date_picker)).click()#
@@ -65,7 +69,7 @@ class WidgetPage :
             print("Erreur : Un ou plusieurs éléments ne se sont pas chargés à temps.")#
 
 
-
+#########################################################################################################
     def select_date_hour(self):
         # 1️⃣ Ouvrir le sélecteur de date
         self.wait.until(EC.element_to_be_clickable(self.date_hour)).click()
@@ -80,8 +84,7 @@ class WidgetPage :
         for nbmonth in list_months:
             if nbmonth.text.strip() == "November":
                 nbmonth.click()
-                time.sleep(2)
-                break  # Stopper la boucle une fois que Novembre est sélectionné
+                break
         
         # 5️⃣ Vérifier quel mois a été sélectionné
         month_element = self.wait.until(EC.visibility_of_element_located(self.month_select))
@@ -89,7 +92,6 @@ class WidgetPage :
 
         day_element = self.wait.until(EC.element_to_be_clickable(self.nb_days))
         day_element.click()
-        time.sleep(1)
         
         # 6 Select year
         self.wait.until(EC.element_to_be_clickable(self.click_year)).click()
@@ -111,7 +113,6 @@ class WidgetPage :
                 
                 if year_found:
                     break  # Si 2035 a été trouvée et cliquée, on arrête la boucle WHILE
-
                 # Si 2035 n'est pas encore trouvée, on clique sur le bouton pour défiler les années
                 self.wait.until(EC.element_to_be_clickable(self.defiles_years)).click()
                 time.sleep(1)  # Attendre pour que les années défilent
@@ -119,20 +120,33 @@ class WidgetPage :
             # Vérifier l'année sélectionnée après la boucle
             year_element = self.wait.until(EC.visibility_of_element_located(self.year_select))
             year_text = year_element.text.strip()
-
-            print("✅ Sélection de la date réussie.")
-            print("✅ Mois sélectionné :", month_text)
-            print("✅ Année sélectionnée :", year_text)
             
             day_element = self.wait.until(EC.element_to_be_clickable(self.nb_days))
             day_element.click()
 
         except Exception as e:
-            print(f"❌ Erreur lors de la sélection de l'année : {e}")
-            print(f"ℹ️ Voici les éléments qu'on a : {month_text}, {year_text}, {list_years}")
-            
+            print(f"Erreur lors de la sélection de l'année : {e}")
+            print(f"Voici les éléments qu'on a : {month_text}, {year_text}, {list_years}")
+
         day_element = self.wait.until(EC.element_to_be_clickable(self.nb_days))
         day_element.click()
+            
+            # 1️⃣ Attendre que la liste des heures soit visible
+        self.wait.until(EC.presence_of_element_located((By.CLASS_NAME, "react-datepicker__time-list")))
+
+        # 2️⃣ Récupérer tous les éléments de la liste
+        time_options = self.driver.find_elements(By.CLASS_NAME, "react-datepicker__time-list-item")
+        
+
+        # 3️⃣ Parcourir la liste pour trouver l'heure désirée
+        for option in time_options:
+            target_time="23:45"
+            if option.text.strip() == target_time:
+                # 4️⃣ Scroller et cliquer sur l'heure
+                actions = ActionChains(self.driver)
+                actions.move_to_element(option).click().perform()
+                print(f"✅ Heure sélectionnée : {target_time}")
+                break
         time.sleep(1)
 
 
